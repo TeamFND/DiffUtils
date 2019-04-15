@@ -71,6 +71,7 @@
         <Android_SplashImage470>$(BDS)\bin\Artwork\Android\FM_SplashImage_470x320.png</Android_SplashImage470>
         <Android_SplashImage640>$(BDS)\bin\Artwork\Android\FM_SplashImage_640x480.png</Android_SplashImage640>
         <Android_SplashImage960>$(BDS)\bin\Artwork\Android\FM_SplashImage_960x720.png</Android_SplashImage960>
+        <EnabledSysJars>android-support-v4.dex.jar;cloud-messaging.dex.jar;fmx.dex.jar;google-analytics-v2.dex.jar;google-play-billing.dex.jar;google-play-licensing.dex.jar;google-play-services.dex.jar</EnabledSysJars>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Linux64)'!=''">
         <DCC_UsePackage>DataSnapServerMidas;FireDACADSDriver;DatasnapConnectorsFreePascal;FireDACMSSQLDriver;inetdb;emsedge;dbexpress;IndyCore;dsnap;DataSnapCommon;DataSnapConnectors;bindengine;FireDACOracleDriver;FireDACMySQLDriver;FireDACCommonODBC;DataSnapClient;IndySystem;FireDACDb2Driver;FireDACInfxDriver;emshosting;FireDACPgDriver;FireDACASADriver;FireDACTDataDriver;DbxCommonDriver;DataSnapServer;xmlrtl;DataSnapNativeClient;rtl;DbxClientDriver;CustomIPTransport;bindcomp;dbxcds;FireDACODBCDriver;DataSnapIndy10ServerTransport;dsnapxml;dbrtl;FireDACMongoDBDriver;IndyProtocols;$(DCC_UsePackage)</DCC_UsePackage>

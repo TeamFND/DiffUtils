@@ -9,6 +9,7 @@ uses
 var
   lst: TDiffList<integer>;
   action, param1, param2: integer;
+  inarr:array of integer;
 
 procedure show(com: string);
 var
@@ -20,25 +21,37 @@ begin
   writeln;
 end;
 
+function ReadArr():TArray<integer>;
+var
+  i,l:integer;
+begin
+  write('Enter length: ');
+  readln(l);
+  SetLength(Result,l);
+  write('Enter array: ');
+  for i:=0 to l-1 do
+     read(Result[i]);
+end;
+
 begin
   lst := TDiffList<integer>.Create;
-  lst.AddElem(90);
-  lst.AddElem(80);
-  lst.AddElem(70);
-  lst.AddElem(60);
-  lst.AddElem(50);
+  lst.Add(90);
+  lst.Add(80);
+  lst.Add(70);
+  lst.Add(60);
+  lst.Add(50);
   show('set to');
   repeat
-    writeln('1 - add     4 - change      7 - Clear list');
-    writeln('2 - remove  5 - Go back     8 - Clear history');
-    writeln('3 - insert  6 - Go forward  0 - exit');
+    writeln('1 - add     4 - change      7 - Clear list      10 - remove range');
+    writeln('2 - remove  5 - Go back     8 - Clear history   11 - set range');
+    writeln('3 - insert  6 - Go forward  9 - insert range    0 - exit');
     readln(action);
     case action of
       1:
         begin
           writeln('enter value');
           readln(param1);
-          lst.AddElem(param1);
+          lst.Add(param1);
         end;
       2:
         begin
@@ -62,6 +75,26 @@ begin
       6:lst.GoForward;
       7:lst.Clear;
       8:lst.ClearHistory;
+      9:
+        begin
+          write('Enter start index: ');
+          readln(param1);
+          lst.InsertRange(param1,ReadArr);
+        end;//insert range;
+      10:
+        begin
+          write('Enter start index: ');
+          readln(param1);
+          write('Enter length: ');
+          readln(param2);
+          lst.RemoveRange(param1,param2);
+        end;//remove range;
+      11:
+        begin
+          write('Enter start index: ');
+          readln(param1);
+          lst.SetRange(param1,ReadArr);
+        end;//set range;
     end;
     show('current state');
   until (action = 0);
