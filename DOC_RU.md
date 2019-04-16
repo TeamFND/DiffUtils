@@ -1,9 +1,13 @@
 # класс DiffUtils
 
-- procedure Insert(i:integer;elem:T) - добавляет элемент по  индексу и значению
-- procedure AddElem(elem:T) - добавляет элемент по значению в конец списка
+- procedure Insert(i:integer;elem:T) - добавляет элемент по индексу и значению
+- procedure InsertRange(i:integer;elems:array of T) - добавляет массив элементов по индексу и значению
+- procedure Add(elem:T) - добавляет элемент по значению в конец списка
+- procedure AddRange(elem:array of T) - добавляет массив элементов в конец списка
 - procedure Remove(index:integer) - удаляет элемент из списка по индексу
+- procedure RemoveRange(index:integer) - удаляет массив элементов из списка по индексу и длине
 - procedure Clear() - удаляет все элементы из списка
+- procedure SetRange(index:integer,elems:array of integer) - Задаёт подсписок по индексу первого элемента и новому подсписку. Длина не передаётся в качестве аргумента функции
 - procedure GoBack() - удаляет последнее изменение (из истории)
 - procedure GoForward() - повторяет поледнее удалённое изменение из истории
 - procedure ClearHistory() - удаляет все записи из истории

@@ -1,16 +1,20 @@
 # class DiffUtils
 
 - procedure Insert(i:integer;elem:T) - adds element by index and value
-- procedure AddElem(elem:T) - adds element by value to the end of the list
+- procedure InsertRange(i:integer;elems:array of T) - Adds array of elements to the end of the list
+- procedure Add(elem:T) - adds element by value to the end of the list
+- procedure Add(elem:array of T) - adds range(array) to the end of the list
 - procedure Remove(index:integer) - removes element from the list by number
+- procedure Remove(index:integer) - removes array of elements from the list by number and length
 - procedure Clear() - removes all elements from the list
+- procedure SetRange(index:integer,elems:array of integer) - allows you to set range of elements by start index and array. Length is not passed as an arguement
 - procedure GoBack() - cancels last change in history
 - procedure GoForward() - does the last cancelled changу again
 - procedure ClearHistory() - removes all records from hstory
 - property HistoryCountBack - returns amount of elements before current state
 - property History - returns full change history 
 - property HistoryCountForward - returns amount of elements after current state
-- property Items - allows access to elements by index given in square braces
+- property Items - allows accress to elements by index given in square braces
 - property Count - returns number of elements in the List
 
 # record THistoryItem
