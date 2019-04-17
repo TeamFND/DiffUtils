@@ -1,42 +1,42 @@
 # class DiffUtils
 
 - procedure Insert(i:integer;elem:T) - adds element by index and value
-- procedure InsertRange(i:integer;elems:array of T) - Adds array of elements to the end of the list
+- procedure InsertRange(i:integer;elems:array of T) - adds array of elements to the end of the list
 - procedure Add(elem:T) - adds element by value to the end of the list
 - procedure AddRange(elem:array of T) - adds range(array) to the end of the list
 - procedure Remove(index:integer) - removes element from the list by number
-- procedure RemoveRange(index:integer) - removes array of elements from the list by number and length
-- procedure Clear() - removes all elements from the list
-- procedure SetRange(index:integer,elems:array of integer) - allows you to set range of elements by start index and array. Length is not passed as an arguement
-- procedure GoBack() - cancels last change in history
-- procedure GoForward() - does the last cancelled change again
+- procedure RemoveRange(index:integer;length:integer) - removes array of elements from the list by number and length
+- procedure SetRange(index:integer;elems:array of T) - allows you to set range of elements by start index and array
+- procedure Clear() - removes all elements and histoy from list
 - procedure ClearHistory() - removes all records from history
-- property HistoryCountBack - returns amount of elements before current state
-- property History - returns full change history 
-- property HistoryCountForward - returns amount of elements after current state
-- property Items - allows access to elements by index given in square braces
-- property Count - returns number of elements in the List
+- procedure GoBack() - cancel last change
+- procedure GoForward() - does the last cancelled change again
+- property HistoryCountBack:integer - amount of elements before current state
+- property HistoryCountForward:integer - amount of elements after current state
+- property History[index:integer]:THistoryItem - change history(0-lats, 1-before last, -1-next)
+- property Items[index:integer]:T - list
+- property Count:integer - number of elements in the List
 
 # record THistoryItem
 
-- index - integer field storing index of changed element
-- action - enum field storing type of change
-- value - field storing value of element with the given index
-- OldValue - field storing value that was set to element before this change in history
+- index - index of changed elements
+- action - type of change
+- value - new values of elements
+- OldValue - old values of elements
 
 # Main features
 
 * Create the list oа elements of any data type with possibility to reverse your changes
 * Modify the list
-  + insert items into the position
-  + add items to the end of the list
-  + remove certain element
-  + replace certain element with any other value
-  + clear the list
-* List has got change history
+  + Insert items into the position
+  + Add items to the end of the list
+  + Remove certain element
+  + Replace certain element with any other value
+  + Clear the list
+* List has got changes history
   + Every change is logged
-  + History can be cleared
+  + History can be cleaned
   + You can
     * Reverse any changes
-    * Make this changes again (using еоу history conmmand)
-    * When you make new changes all history after this state is being erased
+    * Make this changes again using еоу history command
+  + When you make new changes all history after this state is being erased

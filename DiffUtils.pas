@@ -20,18 +20,18 @@ type
         arr:TList<T>;
         FHistory:TList<THistoryItem>;
         HistoryPos:integer;
-      function GetElem(index:integer):T;
-      procedure SetElem(index:integer;data:T);
-      function GetCount():Integer;
       procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);
       function GetHistoryItem(index:integer):THistoryItem;
       function GetHistoryCountBack:integer;
       function GetHistoryCountForward:integer;
+      function GetElem(index:integer):T;
+      procedure SetElem(index:integer;data:T);
+      function GetCount():Integer;
     public
       constructor Create();
-      procedure Add(elem:T);overload;
+      procedure Add(elem:T);
       procedure AddRange(elems:TArr);
-      procedure Insert(index:integer;elem:T);overload;
+      procedure Insert(index:integer;elem:T);
       procedure InsertRange(index:integer;elems:TArr);
       procedure Remove(index:integer);
       procedure RemoveRange(index:integer;length:integer);
@@ -40,12 +40,11 @@ type
       procedure GoForward();
       procedure Clear();
       procedure ClearHistory();
-      //procedure GetRange(index:integer;length:integer);
-      property Count:integer read GetCount;
       property HistoryCountBack:integer read GetHistoryCountBack;
       property HistoryCountForward:integer read GetHistoryCountForward;
       property History[index:integer]:THistoryItem read GetHistoryItem;
       property Items[index:integer]:T read GetElem write SetElem;default;
+      property Count:integer read GetCount;
   end;
 
 implementation
@@ -77,7 +76,15 @@ begin
     value:=Pvalue;
     OldValue:=POldValue;
   end;
-  FHistory.Insert(0,item);
+  if HistoryPos=0 then
+    FHistory.Insert(0,item)
+  else
+  begin
+    if HistoryPos<>1 then
+      FHistory.DeleteRange(0,HistoryPos-1);
+    FHistory[0]:=item;
+    HistoryPos:=0;
+  end;
 end;
 
 function TDiffList<T>.GetHistoryItem(index:integer):THistoryItem;
@@ -128,7 +135,7 @@ end;
 
 procedure TDiffList<T>.SetRange(index:integer;elems:TArr);
 var
-  I:integer;
+  i:integer;
 begin
   AddToHistory(index,TAction.Change,elems,Copy(arr.List,index,length(elems)));
   for i:=0 to length(elems)-1 do
@@ -154,7 +161,6 @@ begin
   if HistoryPos<FHistory.Count then
   begin
     with FHistory[HistoryPos] do
-    begin
       case action of
         TAction.Insert:arr.DeleteRange(index,length(Value));
         TAction.Remove:arr.InsertRange(index,Oldvalue);
@@ -162,7 +168,6 @@ begin
         for i:=0 to length(Value)-1 do
           arr[i+index]:=OldValue[i];
       end;
-    end;
     inc(HistoryPos);
   end;
 end;
@@ -175,7 +180,6 @@ begin
   begin
     dec(HistoryPos);
     with FHistory[HistoryPos] do
-    begin
       case action of
       TAction.Insert:arr.InsertRange(index,value);
       TAction.Remove:arr.DeleteRange(index,length(OldValue));
@@ -183,7 +187,6 @@ begin
         for i:=0 to length(Value)-1 do
           arr[i+index]:=Value[i];
       end;
-    end;
   end;
 end;
 
