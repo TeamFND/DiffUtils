@@ -3,9 +3,9 @@
 - procedure Insert(i:integer;elem:T) - adds element by index and value
 - procedure InsertRange(i:integer;elems:array of T) - Adds array of elements to the end of the list
 - procedure Add(elem:T) - adds element by value to the end of the list
-- procedure Add(elem:array of T) - adds range(array) to the end of the list
+- procedure AddRange(elem:array of T) - adds range(array) to the end of the list
 - procedure Remove(index:integer) - removes element from the list by number
-- procedure Remove(index:integer) - removes array of elements from the list by number and length
+- procedure RemoveRange(index:integer) - removes array of elements from the list by number and length
 - procedure Clear() - removes all elements from the list
 - procedure SetRange(index:integer,elems:array of integer) - allows you to set range of elements by start index and array. Length is not passed as an arguement
 - procedure GoBack() - cancels last change in history
