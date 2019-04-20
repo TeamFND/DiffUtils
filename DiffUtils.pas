@@ -3,7 +3,7 @@ unit DiffUtils;
 interface
 
 uses
-  Generics.Collections;
+  System.SysUtils,System.Generics.Defaults,System.Generics.Collections;
 
 type
   TDiffList<T>=class
@@ -20,7 +20,7 @@ type
         arr:TList<T>;
         FHistory:TList<THistoryItem>;
         HistoryPos:integer;
-      procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);
+      procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);virtual;
       function GetHistoryItem(index:integer):THistoryItem;
       function GetHistoryCountBack:integer;
       function GetHistoryCountForward:integer;
@@ -36,10 +36,10 @@ type
       procedure Remove(index:integer);
       procedure RemoveRange(index:integer;length:integer);
       procedure SetRange(index:integer;elems:TArr);
-      procedure GoBack();
-      procedure GoForward();
-      procedure Clear();
-      procedure ClearHistory();
+      procedure GoBack();//count:integer=1
+      procedure GoForward();//count:integer=1
+      procedure Clear();virtual;
+      procedure ClearHistory();virtual;
       property HistoryCountBack:integer read GetHistoryCountBack;
       property HistoryCountForward:integer read GetHistoryCountForward;
       property History[index:integer]:THistoryItem read GetHistoryItem;
@@ -47,7 +47,144 @@ type
       property Count:integer read GetCount;
   end;
 
+  TSmartDiffList<T,TID>=class(TDiffList<T>)
+    private
+      type
+        THistoryPoint=record   // только контрольные точки а не изменения массива
+          CountBack:integer; //from the next one
+          ID:TID;
+        end;
+      var
+        HistoryPoints:TList<THistoryPoint>;
+        Comp:IComparer<TID>;
+      procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);override;
+    public
+      constructor Create();
+      procedure SetPoint(id:TID;Back:integer);
+      procedure SetPointHere(id:TID);
+      procedure GoToPoint(id:TID);
+      //function DeletePoint(id:TID);
+      //function DeletePointHere();
+      //function GoToBackPoint(count:integer=1);
+      //function GoToForwardPoint(count:integer=1);
+      //procedure Clear();override;
+      //procedure ClearHistory();override;
+  end;
+
 implementation
+
+{TSmartDiffList<T,TID>}
+
+procedure TSmartDiffList<T,TID>.AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);
+var
+  tmp:THistoryPoint;
+  sum,i:integer;
+begin
+  if HistoryPos=0 then
+  begin
+    if HistoryPoints.Count>0 then
+    begin
+      tmp:=HistoryPoints[0];
+      inc(tmp.CountBack);
+      HistoryPoints[0]:=tmp;
+    end
+  end
+  else
+  begin
+    sum:=-(HistoryPos-1);
+    for i:=0 to HistoryPoints.Count-1 do
+      if HistoryPoints[i].CountBack+sum<0 then
+        inc(sum,HistoryPoints[i].CountBack)
+      else
+      begin
+        HistoryPoints.DeleteRange(0,i);
+        tmp.ID:=HistoryPoints[0].ID;
+        tmp.CountBack:=sum;
+        HistoryPoints[0]:=tmp;
+        inherited AddToHistory;
+        exit;
+      end;
+    HistoryPoints.Clear;
+  end;
+  inherited AddToHistory;
+end;
+
+constructor TSmartDiffList<T,TID>.Create();
+begin
+  inherited Create;
+  HistoryPoints:=TList<THistoryPoint>.Create;
+  Comp:=TComparer<TID>.Default;
+end;
+
+procedure TSmartDiffList<T,TID>.SetPoint(id:TID;Back:integer);
+var
+  HistPoint:THistoryPoint;
+  i,sum:integer;
+begin
+  HistPoint.ID:=id;
+  sum:=0;
+  for i:=0 to HistoryPoints.Count-1 do
+  begin
+    inc(sum,HistoryPoints[i].CountBack);
+    HistoryPos:=HistoryPos+Back;
+    if sum>HistoryPos then
+    begin
+      HistPoint.CountBack:=HistoryPos-sum+HistoryPoints[i].CountBack;
+      HistoryPoints.Insert(i,HistPoint);
+      HistPoint:=HistoryPoints[i+1];
+      HistPoint.CountBack:=sum-HistoryPos;
+      HistoryPoints[i+1]:=HistPoint;
+      exit();
+    end;
+  end;
+  HistPoint.CountBack:=HistoryPos-sum;
+  HistoryPoints.Add(HistPoint);
+end;
+
+procedure TSmartDiffList<T,TID>.SetPointHere(id:TID);
+var
+  HistPoint:THistoryPoint;
+  i,sum:integer;
+begin
+  HistPoint.ID:=id;
+  sum:=0;
+  for i:=0 to HistoryPoints.Count-1 do
+  begin
+    inc(sum,HistoryPoints[i].CountBack);
+    if sum>HistoryPos then
+    begin
+      HistPoint.CountBack:=HistoryPos-sum+HistoryPoints[i].CountBack;
+      HistoryPoints.Insert(i,HistPoint);
+      HistPoint:=HistoryPoints[i+1];
+      HistPoint.CountBack:=sum-HistoryPos;
+      HistoryPoints[i+1]:=HistPoint;
+      exit();
+    end;
+  end;
+  HistPoint.CountBack:=HistoryPos-sum;
+  HistoryPoints.Add(HistPoint);
+end;
+
+procedure TSmartDiffList<T,TID>.GoToPoint(id:TID);
+var
+  HistPoint:THistoryPoint;
+  sum:integer;
+begin
+  sum:=0;
+  for HistPoint in HistoryPoints do
+    if Comp.Compare(HistPoint.ID,id)=0 then
+    begin
+      // юзаем GoBack и GoForward
+      while sum<HistoryPos do
+        GoForward;
+      while sum>HistoryPos do
+        GoBack;
+    end
+    else
+      inc(sum,HistPoint.CountBack);
+end;
+
+{TDiffList<T>}
 
 function TDiffList<T>.GetElem(index:integer):T;
 begin
