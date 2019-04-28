@@ -34,8 +34,8 @@ type
       procedure Remove(index:integer);
       procedure RemoveRange(index:integer;length:integer);
       procedure SetRange(index:integer;elems:array of T);
-      procedure GoBack();//count:integer=1
-      procedure GoForward();//count:integer=1
+      procedure GoBack(count:integer=1);
+      procedure GoForward(count:integer=1);
       procedure Clear();virtual;
       procedure ClearHistory();virtual;
       property HistoryCountBack:integer read GetHistoryCountBack;
@@ -288,11 +288,11 @@ begin
   arr.DeleteRange(index,length);
 end;
 
-procedure TDiffList<T>.GoBack();
+procedure TDiffList<T>.GoBack(count:integer=1);
 var
   i:integer;
 begin
-  if HistoryPos<FHistory.Count then
+  while(HistoryPos<FHistory.Count)and(count>0)do
   begin
     with FHistory[HistoryPos] do
       case action of
@@ -303,14 +303,15 @@ begin
           arr[i+index]:=OldValue[i];
       end;
     inc(HistoryPos);
+    dec(count);
   end;
 end;
 
-procedure TDiffList<T>.GoForward();
+procedure TDiffList<T>.GoForward(count:integer=1);
 var
   i:integer;
 begin
-  if HistoryPos>0 then
+  while(HistoryPos>0)and(count>0)do
   begin
     dec(HistoryPos);
     with FHistory[HistoryPos] do
@@ -321,6 +322,7 @@ begin
         for i:=0 to length(Value)-1 do
           arr[i+index]:=Value[i];
       end;
+    dec(count);
   end;
 end;
 
