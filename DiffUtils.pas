@@ -6,22 +6,20 @@ uses
   System.SysUtils,System.Generics.Defaults,System.Generics.Collections;
 
 type
+  TAction=(Remove,Change,Insert);
+  THistoryItem<T>=record
+    index:integer;
+    Action:TAction;
+    Value,OldValue:array of T;
+    constructor Create(index:integer;Action:TAction;Value,OldValue:array of T);
+  end;
   TDiffList<T>=class
-    private
-      type
-        TArr=array of T;
-        TAction=(Remove,Change,Insert);
-        THistoryItem=record
-          index:integer;
-          action:TAction;
-          value,OldValue:TArr;
-        end;
-      var
-        arr:TList<T>;
-        FHistory:TList<THistoryItem>;
-        HistoryPos:integer;
-      procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);virtual;
-      function GetHistoryItem(index:integer):THistoryItem;
+    strict protected
+      arr:TList<T>;
+      FHistory:TList<THistoryItem<T>>;
+      HistoryPos:integer;
+      procedure AddToHistory(index:integer;action:TAction;value,OldValue:array of T);virtual;
+      function GetHistoryItem(index:integer):THistoryItem<T>;
       function GetHistoryCountBack:integer;
       function GetHistoryCountForward:integer;
       function GetElem(index:integer):T;
@@ -30,34 +28,34 @@ type
     public
       constructor Create();
       procedure Add(elem:T);
-      procedure AddRange(elems:TArr);
+      procedure AddRange(elems:array of T);
       procedure Insert(index:integer;elem:T);
-      procedure InsertRange(index:integer;elems:TArr);
+      procedure InsertRange(index:integer;elems:array of T);
       procedure Remove(index:integer);
       procedure RemoveRange(index:integer;length:integer);
-      procedure SetRange(index:integer;elems:TArr);
+      procedure SetRange(index:integer;elems:array of T);
       procedure GoBack();//count:integer=1
       procedure GoForward();//count:integer=1
       procedure Clear();virtual;
       procedure ClearHistory();virtual;
       property HistoryCountBack:integer read GetHistoryCountBack;
       property HistoryCountForward:integer read GetHistoryCountForward;
-      property History[index:integer]:THistoryItem read GetHistoryItem;
+      property History[index:integer]:THistoryItem<T> read GetHistoryItem;
       property Items[index:integer]:T read GetElem write SetElem;default;
       property Count:integer read GetCount;
   end;
 
   TSmartDiffList<T,TID>=class(TDiffList<T>)
-    private
+    strict protected
       type
-        THistoryPoint=record   // только контрольные точки а не изменения массива
-          CountBack:integer; //from the next one
+        THistoryPoint=record
+          CountBack:integer;
           ID:TID;
         end;
       var
         HistoryPoints:TList<THistoryPoint>;
         Comp:IComparer<TID>;
-      procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);override;
+      procedure AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:array of T);override;
     public
       constructor Create();
       procedure SetPoint(id:TID;Back:integer);
@@ -73,9 +71,17 @@ type
 
 implementation
 
+constructor THistoryItem<T>.Create(index:integer;action:TAction;value,OldValue:array of T);
+begin
+Self.index:=index;
+Self.Action:=Action;
+Self.Value:=Value;
+Self.OldValue:=OldValue;
+end;
+
 {TSmartDiffList<T,TID>}
 
-procedure TSmartDiffList<T,TID>.AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);
+procedure TSmartDiffList<T,TID>.AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:array of T);
 var
   tmp:THistoryPoint;
   sum,i:integer;
@@ -101,12 +107,12 @@ begin
         tmp.ID:=HistoryPoints[0].ID;
         tmp.CountBack:=sum;
         HistoryPoints[0]:=tmp;
-        inherited AddToHistory;
+        inherited;
         exit;
       end;
     HistoryPoints.Clear;
   end;
-  inherited AddToHistory;
+  inherited;
 end;
 
 constructor TSmartDiffList<T,TID>.Create();
@@ -202,29 +208,20 @@ begin
   Result:=arr.Count;
 end;
 
-procedure TDiffList<T>.AddToHistory(Pindex:integer;Paction:TAction;Pvalue,POldValue:Tarr);
-var
-  item:THistoryItem;
+procedure TDiffList<T>.AddToHistory(index:integer;action:TAction;value,OldValue:array of T);
 begin
-  with item do
-  begin
-    index:=Pindex;
-    action:=Paction;
-    value:=Pvalue;
-    OldValue:=POldValue;
-  end;
   if HistoryPos=0 then
-    FHistory.Insert(0,item)
+    FHistory.Insert(0,THistoryItem<T>.Create(index,action,value,OldValue))
   else
   begin
     if HistoryPos<>1 then
       FHistory.DeleteRange(0,HistoryPos-1);
-    FHistory[0]:=item;
+    FHistory[0]:=THistoryItem<T>.Create(index,action,value,OldValue);
     HistoryPos:=0;
   end;
 end;
 
-function TDiffList<T>.GetHistoryItem(index:integer):THistoryItem;
+function TDiffList<T>.GetHistoryItem(index:integer):THistoryItem<T>;
 begin
    Result:=FHistory[index+HistoryPos];
 end;
@@ -242,7 +239,7 @@ end;
 constructor TDiffList<T>.Create();
 begin
   arr:=Tlist<T>.Create();
-  FHistory:=TList<THistoryItem>.Create();
+  FHistory:=TList<THistoryItem<T>>.Create();
   HistoryPos:=0;
 end;
 
@@ -252,7 +249,7 @@ begin
   arr.Add(elem);
 end;
 
-procedure TDiffList<T>.AddRange(elems:TArr);
+procedure TDiffList<T>.AddRange(elems:array of T);
 begin
   AddToHistory(arr.Count,TAction.Insert,elems,[]);
   arr.InsertRange(arr.Count,elems);
@@ -264,13 +261,13 @@ begin
   arr.Insert(index,elem);
 end;
 
-procedure TDiffList<T>.InsertRange(index:integer;elems:TArr);
+procedure TDiffList<T>.InsertRange(index:integer;elems:array of T);
 begin
   AddToHistory(index,TAction.Insert,elems,[]);
   arr.InsertRange(index,elems);
 end;
 
-procedure TDiffList<T>.SetRange(index:integer;elems:TArr);
+procedure TDiffList<T>.SetRange(index:integer;elems:array of T);
 var
   i:integer;
 begin
