@@ -119,12 +119,12 @@ begin
   while index>0 do
   begin
     if tmp=nil then
-      raise Exception.Create('Error: HistoryItem not found');
+      raise EArgumentOutOfRangeException.Create('Error: HistoryItem not found');
     tmp:=tmp.Next;
     dec(index);
   end;
   if tmp=nil then
-    raise Exception.Create('Error: HistoryItem not found');
+    raise EArgumentOutOfRangeException.Create('Error: HistoryItem not found');
   Result:=tmp.Val;
 end;
 
@@ -170,7 +170,7 @@ var
   tmp:PStackItem;
 begin
   if FHistoryCountBack<count then
-    raise Exception.Create('Error: HistoryItem not found');
+    raise EArgumentOutOfRangeException.Create('Error: HistoryItem not found');
   dec(FHistoryCountBack,count);
   inc(FHistoryCountForward,count);
   for count:=count downto 1 do
@@ -188,7 +188,7 @@ var
   tmp:PStackItem;
 begin
   if FHistoryCountForward<count then
-    raise Exception.Create('Error: HistoryItem not found');
+    raise EArgumentOutOfRangeException.Create('Error: HistoryItem not found');
   dec(FHistoryCountForward,count);
   inc(FHistoryCountBack,count);
   for count:=count downto 1 do
