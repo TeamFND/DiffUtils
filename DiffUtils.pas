@@ -3,13 +3,13 @@ unit DiffUtils;
 interface
 
 uses
-  System.SysUtils,System.Generics.Defaults,System.Generics.Collections;
+  System.SysUtils,System.Rtti,System.Generics.Defaults,System.Generics.Collections;
 
 type
   TListHistoryItem<T>=record
     index,len:integer;
     Value:T;
-    constructor Create(index,len:integer;Value:T);
+    constructor Create(index,len:integer;const Value:T);
   end;
 
   THistoriedStructure<T>=class abstract
@@ -27,7 +27,7 @@ type
       function GetHistoryItem(index:integer):T;virtual;
       function GetHistoryCountBack:integer;virtual;
       function GetHistoryCountForward:integer;virtual;
-      procedure AddToHistory(Item:T);virtual;
+      procedure AddToHistory(const Item:T);virtual;
       procedure GoBackWork(var Change:T);virtual;abstract;
       procedure GoForwardWork(var Change:T);virtual;abstract;
     public
@@ -51,7 +51,7 @@ type
       function GetCount():Integer;
     public
       constructor Create();
-      procedure Add(elem:T);
+      procedure Add(const elem:T);
       procedure AddRange(elems:TArray<T>);
       procedure Insert(index:integer;elem:T);
       procedure InsertRange(index:integer;elems:TArray<T>);
@@ -76,7 +76,7 @@ type
       var
         FHistoryPointsBack,FHistoryPointsForward:PHistoryPoint;
         Comp:IEqualityComparer<TID>;
-      procedure AddToHistory(item:TListHistoryItem<TArray<T>>);override;
+      procedure AddToHistory(const item:TListHistoryItem<TArray<T>>);override;
     public
       constructor Create();
       procedure GoBack(count:integer=1);override;
@@ -96,7 +96,7 @@ implementation
 
 {TListHistoryItem<T>}
 
-constructor TListHistoryItem<T>.Create(index,len:integer;value:T);
+constructor TListHistoryItem<T>.Create(index,len:integer;const value:T);
 begin
 Self.index:=index;
 Self.len:=len;
@@ -138,7 +138,7 @@ begin
   Result:=FHistoryCountForward;
 end;
 
-procedure THistoriedStructure<T>.AddToHistory(item:T);
+procedure THistoriedStructure<T>.AddToHistory(const item:T);
 var
   tmp:PStackItem;
 begin
@@ -285,7 +285,7 @@ begin
   arr:=Tlist<T>.Create();
 end;
 
-procedure TDiffList<T>.Add(elem:T);
+procedure TDiffList<T>.Add(const elem:T);
 begin
   AddToHistory(TListHistoryItem<TArray<T>>.Create(arr.Count,1,[]));
   arr.Add(elem);
@@ -344,7 +344,7 @@ end;
 
 {TSmartDiffList<T,TID>}
 
-procedure TSmartDiffList<T,TID>.AddToHistory(item:TListHistoryItem<TArray<T>>);
+procedure TSmartDiffList<T,TID>.AddToHistory(const item:TListHistoryItem<TArray<T>>);
 var
   tmp:PHistoryPoint;
   sum,i:integer;
