@@ -7,9 +7,9 @@ uses
 
 type
   TListHistoryItem<T>=record
-    index,length:integer;
+    index,len:integer;
     Value:T;
-    constructor Create(index,length:integer;Value:T);
+    constructor Create(index,len:integer;Value:T);
   end;
 
   THistoriedStructure<T>=class abstract
@@ -32,8 +32,8 @@ type
       procedure GoForwardWork(var Change:T);virtual;abstract;
     public
       constructor Create();
-      procedure GoBack(count:integer=1);
-      procedure GoForward(count:integer=1);
+      procedure GoBack(count:integer=1);virtual;
+      procedure GoForward(count:integer=1);virtual;
       procedure ClearHistory();virtual;
       property HistoryCountBack:integer read GetHistoryCountBack;
       property HistoryCountForward:integer read GetHistoryCountForward;
@@ -67,16 +67,20 @@ type
   TSmartDiffList<T,TID>=class(TDiffList<T>)
     strict protected
       type
+        PHistoryPoint=^THistoryPoint;
         THistoryPoint=record
+          Next:PHistoryPoint;
           CountBack:integer;
           ID:TID;
         end;
       var
-        HistoryPoints:TList<THistoryPoint>;
+        FHistoryPointsBack,FHistoryPointsForward:PHistoryPoint;
         Comp:IEqualityComparer<TID>;
       procedure AddToHistory(item:TListHistoryItem<TArray<T>>);override;
     public
       constructor Create();
+      procedure GoBack(count:integer=1);override;
+      procedure GoForward(count:integer=1);override;
       procedure SetPoint(id:TID;Back:integer);
       procedure SetPointHere(id:TID);
       procedure GoToPoint(id:TID);
@@ -92,10 +96,10 @@ implementation
 
 {TListHistoryItem<T>}
 
-constructor TListHistoryItem<T>.Create(index,length:integer;value:T);
+constructor TListHistoryItem<T>.Create(index,len:integer;value:T);
 begin
 Self.index:=index;
-Self.length:=length;
+Self.len:=len;
 Self.Value:=Value;
 end;
 
@@ -229,23 +233,23 @@ begin
   with Change do
   begin
     Vl:=length(Value);
-    min:=length;
-    if Vl<length then
+    min:=len;
+    if Vl<len then
     begin
-      SetLength(Value,length);
-      for i:=Vl to length-1 do
+      SetLength(Value,len);
+      for i:=Vl to len-1 do
         Value[i]:=arr[index+i];
-      arr.DeleteRange(index+Vl,length-Vl);
+      arr.DeleteRange(index+Vl,len-Vl);
       min:=Vl;
     end
-    else if Vl>length then
+    else if Vl>len then
     begin
-      arr.InsertRange(index+length,Copy(Value,length,Vl-length));
-      SetLength(Value,length);
+      arr.InsertRange(index+len,Copy(Value,len,Vl-len));
+      SetLength(Value,len);
     end;
     for i:=0 to min-1 do
       arr[i+index]:=Value[i];
-    length:=Vl;
+    len:=Vl;
   end;
 end;
 
@@ -266,7 +270,7 @@ end;
 
 procedure TDiffList<T>.SetElem(index:integer;data:T);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,Change,[data],[arr[index]]));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,1,[arr[index]]));
   arr[index]:=data;
 end;
 
@@ -283,37 +287,37 @@ end;
 
 procedure TDiffList<T>.Add(elem:T);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(arr.Count,TAction.Insert,[elem],[]));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(arr.Count,1,[]));
   arr.Add(elem);
 end;
 
 procedure TDiffList<T>.AddRange(elems:TArray<T>);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(arr.Count,TAction.Insert,elems,[]));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(arr.Count,length(elems),[]));
   arr.InsertRange(arr.Count,elems);
 end;
 
 procedure TDiffList<T>.Insert(index:integer;elem:T);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,TAction.Insert,[elem],[]));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,1,[]));
   arr.Insert(index,elem);
 end;
 
 procedure TDiffList<T>.InsertRange(index:integer;elems:TArray<T>);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,TAction.Insert,elems,[]));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,length(elems),[]));
   arr.InsertRange(index,elems);
 end;
 
 procedure TDiffList<T>.Remove(index:integer);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,TAction.Remove,[],[arr[index]]));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,0,[arr[index]]));
   arr.Delete(index);
 end;
 
 procedure TDiffList<T>.RemoveRange(index:integer;length:integer);
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,TAction.Remove,[],Copy(arr.List,index,length)));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,0,Copy(arr.List,index,length)));
   arr.DeleteRange(index,length);
 end;
 
@@ -321,14 +325,14 @@ procedure TDiffList<T>.SetRange(index:integer;elems:TArray<T>);
 var
   i:integer;
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,TAction.Change,elems,Copy(arr.List,index,length(elems))));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(index,length(elems),Copy(arr.List,index,length(elems))));
   for i:=0 to length(elems)-1 do
     arr[i+index]:=elems[i];
 end;
 
 procedure TDiffList<T>.Clear();
 begin
-  AddToHistory(TListHistoryItem<TArray<T>>.Create(0,arr.Count,[],arr.ToArray));
+  AddToHistory(TListHistoryItem<TArray<T>>.Create(0,0,arr.ToArray));
   arr.Clear;
 end;
 
@@ -342,34 +346,15 @@ end;
 
 procedure TSmartDiffList<T,TID>.AddToHistory(item:TListHistoryItem<TArray<T>>);
 var
-  tmp:THistoryPoint;
+  tmp:PHistoryPoint;
   sum,i:integer;
 begin
-  if HistoryPos=0 then
+  while FHistoryPointsForward<>nil do
   begin
-    if HistoryPoints.Count>0 then
-    begin
-      tmp:=HistoryPoints[0];
-      inc(tmp.CountBack);
-      HistoryPoints[0]:=tmp;
-    end
-  end
-  else
-  begin
-    sum:=-(HistoryPos-1);
-    for i:=0 to HistoryPoints.Count-1 do
-      if HistoryPoints[i].CountBack+sum<0 then
-        inc(sum,HistoryPoints[i].CountBack)
-      else
-      begin
-        HistoryPoints.DeleteRange(0,i);
-        tmp.ID:=HistoryPoints[0].ID;
-        tmp.CountBack:=sum;
-        HistoryPoints[0]:=tmp;
-        inherited;
-        exit;
-      end;
-    HistoryPoints.Clear;
+    tmp:=FHistoryPointsForward;
+    FHistoryPointsForward:=FHistoryPointsForward.Next;
+    Finalize(tmp.ID);
+    FreeMem(tmp);
   end;
   inherited;
 end;
@@ -377,76 +362,133 @@ end;
 constructor TSmartDiffList<T,TID>.Create();
 begin
   inherited Create;
-  HistoryPoints:=TList<THistoryPoint>.Create;
+  FHistoryPointsBack:=nil;
+  FHistoryPointsForward:=nil;
   Comp:=TEqualityComparer<TID>.Default;
+end;
+
+procedure TSmartDiffList<T,TID>.GoBack(count:integer=1);
+var
+  tmp:PHistoryPoint;
+begin
+  inherited;
+  while(FHistoryPointsBack<>nil)and(count>0)do
+    if FHistoryPointsBack.CountBack<count then
+    begin
+      tmp:=FHistoryPointsBack;
+      FHistoryPointsBack:=tmp.Next;
+      tmp.Next:=FHistoryPointsForward;
+      FHistoryPointsForward:=tmp;
+      dec(count,tmp.CountBack);
+      tmp.CountBack:=count-1;
+    end
+    else
+    begin
+      dec(FHistoryPointsBack.CountBack,count);
+      break;
+    end;
+end;
+
+procedure TSmartDiffList<T,TID>.GoForward(count:integer=1);
+var
+  tmp:PHistoryPoint;
+begin
+  inherited;
+  while(FHistoryPointsForward<>nil)and(count>0)do
+    if FHistoryPointsForward.CountBack<count then
+    begin
+      tmp:=FHistoryPointsForward;
+      FHistoryPointsForward:=tmp.Next;
+      tmp.Next:=FHistoryPointsBack;
+      FHistoryPointsBack:=tmp;
+      dec(count,tmp.CountBack);
+      tmp.CountBack:=count-1;
+    end
+    else
+    begin
+      dec(FHistoryPointsForward.CountBack,count);
+      break;
+    end;
 end;
 
 procedure TSmartDiffList<T,TID>.SetPoint(id:TID;Back:integer);
 var
-  HistPoint:THistoryPoint;
-  i,sum:integer;
+  tmp:^PHistoryPoint;
+  t:PHistoryPoint;
 begin
-  HistPoint.ID:=id;
-  sum:=0;
-  for i:=0 to HistoryPoints.Count-1 do
+  tmp:=@FHistoryPointsForward;
+  while(tmp^<>nil)and not Comp.Equals(tmp^.ID,id)do
+    tmp:=@tmp^.Next;
+  if not((tmp<>nil)and(Comp.Equals(tmp^.ID,id)))then
   begin
-    inc(sum,HistoryPoints[i].CountBack);
-    HistoryPos:=HistoryPos+Back;
-    if sum>HistoryPos then
-    begin
-      HistPoint.CountBack:=HistoryPos-sum+HistoryPoints[i].CountBack;
-      HistoryPoints.Insert(i,HistPoint);
-      HistPoint:=HistoryPoints[i+1];
-      HistPoint.CountBack:=sum-HistoryPos;
-      HistoryPoints[i+1]:=HistPoint;
-      exit();
-    end;
+    tmp:=@FHistoryPointsBack;
+    while(tmp^<>nil)and not Comp.Equals(tmp^.ID,id)do
+      tmp:=@tmp^.Next;
   end;
-  HistPoint.CountBack:=HistoryPos-sum;
-  HistoryPoints.Add(HistPoint);
+  if(tmp<>nil)and(Comp.Equals(tmp^.ID,id))then
+  begin
+    t:=tmp^;
+    tmp^:=t.Next;
+  end
+  else
+  begin
+    GetMem(t,SizeOf(t));
+    t.ID:=id;
+  end;
+  if Back>=0 then
+  begin
+    tmp:=@FHistoryPointsBack;
+    while(Back>0)and(tmp^<>nil)do
+    begin
+      dec(Back,tmp^.CountBack);
+      tmp:=@tmp^.Next;
+    end;
+    t.Next:=tmp^;
+    tmp^:=t;
+  end
+  else
+  begin
+    tmp:=@FHistoryPointsForward;
+    while(Back<-1)and(tmp^<>nil)do
+    begin
+      inc(Back,tmp^.CountBack);
+      tmp:=@tmp^.Next;
+    end;
+    t.Next:=tmp^;
+    tmp^:=t;
+  end;
 end;
 
 procedure TSmartDiffList<T,TID>.SetPointHere(id:TID);
-var
-  HistPoint:THistoryPoint;
-  i,sum:integer;
 begin
-  HistPoint.ID:=id;
-  sum:=0;
-  for i:=0 to HistoryPoints.Count-1 do
-  begin
-    inc(sum,HistoryPoints[i].CountBack);
-    if sum>HistoryPos then
-    begin
-      HistPoint.CountBack:=HistoryPos-sum+HistoryPoints[i].CountBack;
-      HistoryPoints.Insert(i,HistPoint);
-      HistPoint:=HistoryPoints[i+1];
-      HistPoint.CountBack:=sum-HistoryPos;
-      HistoryPoints[i+1]:=HistPoint;
-      exit();
-    end;
-  end;
-  HistPoint.CountBack:=HistoryPos-sum;
-  HistoryPoints.Add(HistPoint);
+  SetPoint(id,0);
 end;
 
 procedure TSmartDiffList<T,TID>.GoToPoint(id:TID);
 var
-  HistPoint:THistoryPoint;
+  tmp:PHistoryPoint;
   sum:integer;
 begin
   sum:=0;
-  for HistPoint in HistoryPoints do
-    if Comp.Equals(HistPoint.ID,id) then
+  tmp:=FHistoryPointsForward;
+  while(tmp<>nil)and not Comp.Equals(tmp.ID,id)do
+    tmp:=tmp.Next;
+  if(tmp<>nil)and(Comp.Equals(tmp.ID,id))then
+  begin
+    while(FHistoryPointsForward<>nil)and not Comp.Equals(FHistoryPointsForward.ID,id)do
     begin
-      // ‏חאול GoBack ט GoForward
-      while sum<HistoryPos do
-        GoForward;
-      while sum>HistoryPos do
-        GoBack;
-    end
-    else
-      inc(sum,HistPoint.CountBack);
+      inc(sum,FHistoryPointsForward.CountBack);
+      //
+      FHistoryPointsForward:=FHistoryPointsForward.Next;
+    end;
+    GoForward(sum+FHistoryPointsForward.CountBack);
+  end
+  else
+  begin
+    tmp:=FHistoryPointsBack;
+    while(tmp<>nil)and not Comp.Equals(tmp.ID,id)do
+      tmp:=tmp.Next;
+  end;
 end;
 
 end.

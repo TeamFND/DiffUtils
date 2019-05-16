@@ -1,15 +1,14 @@
-program Project3;
+program Demo;
 
 {$APPTYPE CONSOLE}
 {$R *.res}
 
 uses
-  DiffUtils in 'DiffUtils.pas';
+  DiffUtils in '..\DiffUtils.pas';
 
 var
   lst: TSmartDiffList<integer,string>;
   action, param1, param2: integer;
-  inarr:array of integer;
   pname:string;
 
 procedure show(com: string);
