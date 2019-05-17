@@ -1,3 +1,9 @@
+//****************************************************
+//*Copyright (c) 2019 Artem Gavrilov.                *
+//*Website: https://teamfnd.ru			                 *
+//*License: MIT 				                             *
+//*Donate: https://money.yandex.ru/to/410014959153552*
+//****************************************************
 unit DiffUtils;
 
 interface
@@ -64,18 +70,35 @@ type
       property Count:integer read GetCount;
   end;
 
+  TSmarter<TID>=record
+    type
+      PHistoryPoint=^THistoryPoint;
+      THistoryPoint=record
+        Next:PHistoryPoint;
+        CountBack:integer;
+        ID:TID;
+      end;
+    var
+      FHistoryPointsBack,FHistoryPointsForward:PHistoryPoint;
+      Comp:IEqualityComparer<TID>;
+    procedure Init();
+    procedure OnAddToHistory();
+    procedure OnGoBack(count:integer);
+    procedure OnGoForward(count:integer);
+    procedure SetPoint(id:TID;Back:integer);
+    procedure SetPointHere(id:TID);
+    function GoToPoint(id:TID):integer;
+    //function DeletePoint(id:TID);
+    //function DeletePointHere();
+    //function GoToBackPoint(count:integer=1);
+    //function GoToForwardPoint(count:integer=1);
+    //procedure OnClear();
+    //procedure OnClearHistory();
+  end;
+
   TSmartDiffList<T,TID>=class(TDiffList<T>)
     strict protected
-      type
-        PHistoryPoint=^THistoryPoint;
-        THistoryPoint=record
-          Next:PHistoryPoint;
-          CountBack:integer;
-          ID:TID;
-        end;
-      var
-        FHistoryPointsBack,FHistoryPointsForward:PHistoryPoint;
-        Comp:IEqualityComparer<TID>;
+      Smarter:TSmarter<TID>;
       procedure AddToHistory(const item:TListHistoryItem<TArray<T>>);override;
     public
       constructor Create();
@@ -342,9 +365,16 @@ begin
   ClearHistory;
 end;
 
-{TSmartDiffList<T,TID>}
+{TSmarter<TID>}
 
-procedure TSmartDiffList<T,TID>.AddToHistory(const item:TListHistoryItem<TArray<T>>);
+procedure TSmarter<TID>.Init();
+begin
+  FHistoryPointsBack:=nil;
+  FHistoryPointsForward:=nil;
+  Comp:=TEqualityComparer<TID>.Default;
+end;
+
+procedure TSmarter<TID>.OnAddToHistory();
 var
   tmp:PHistoryPoint;
   sum,i:integer;
@@ -356,22 +386,12 @@ begin
     Finalize(tmp.ID);
     FreeMem(tmp);
   end;
-  inherited;
 end;
 
-constructor TSmartDiffList<T,TID>.Create();
-begin
-  inherited Create;
-  FHistoryPointsBack:=nil;
-  FHistoryPointsForward:=nil;
-  Comp:=TEqualityComparer<TID>.Default;
-end;
-
-procedure TSmartDiffList<T,TID>.GoBack(count:integer=1);
+procedure TSmarter<TID>.OnGoBack(count:integer);
 var
   tmp:PHistoryPoint;
 begin
-  inherited;
   while(FHistoryPointsBack<>nil)and(count>0)do
     if FHistoryPointsBack.CountBack<count then
     begin
@@ -389,11 +409,10 @@ begin
     end;
 end;
 
-procedure TSmartDiffList<T,TID>.GoForward(count:integer=1);
+procedure TSmarter<TID>.OnGoForward(count:integer);
 var
   tmp:PHistoryPoint;
 begin
-  inherited;
   while(FHistoryPointsForward<>nil)and(count>0)do
     if FHistoryPointsForward.CountBack<count then
     begin
@@ -409,6 +428,47 @@ begin
       dec(FHistoryPointsForward.CountBack,count);
       break;
     end;
+end;
+
+procedure TSmarter<TID>.SetPoint(id:TID;Back:integer);
+begin
+
+end;
+
+procedure TSmarter<TID>.SetPointHere(id:TID);
+begin
+
+end;
+
+function TSmarter<TID>.GoToPoint(id:TID);
+begin
+
+end;
+
+{TSmartDiffList<T,TID>}
+
+procedure TSmartDiffList<T,TID>.AddToHistory(const item:TListHistoryItem<TArray<T>>);
+begin
+  Smarter.OnAddToHistory();
+  inherited;
+end;
+
+constructor TSmartDiffList<T,TID>.Create();
+begin
+  inherited Create;
+  Smarter.Init;
+end;
+
+procedure TSmartDiffList<T,TID>.GoBack(count:integer=1);
+begin
+  Smarter.OnGoBack(count);
+  inherited;
+end;
+
+procedure TSmartDiffList<T,TID>.GoForward(count:integer=1);
+begin
+  Smarter.OnGoForward(count);
+  inherited;
 end;
 
 procedure TSmartDiffList<T,TID>.SetPoint(id:TID;Back:integer);
